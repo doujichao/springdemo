@@ -47,6 +47,11 @@ public class SimpleAliasRegistry implements AliasRegistry {
 	private final Map<String, String> aliasMap = new ConcurrentHashMap<>(16);
 
 
+	/**
+	 * 别名注册
+	 * @param name the canonical name
+	 * @param alias the alias to be registered
+	 */
 	@Override
 	public void registerAlias(String name, String alias) {
 		Assert.hasText(name, "'name' must not be empty");
@@ -75,6 +80,7 @@ public class SimpleAliasRegistry implements AliasRegistry {
 								registeredName + "' with new target name '" + name + "'");
 					}
 				}
+				//
 				checkForAliasCircle(name, alias);
 				this.aliasMap.put(alias, name);
 				if (logger.isTraceEnabled()) {
