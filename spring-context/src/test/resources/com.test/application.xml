@@ -4,4 +4,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 	<bean id="myTestBean" class="com.demo.MyTestBean" ></bean>
+
+	<bean class="com.demo.CarBeanFactory"  id="car">
+		<property name="info" value="超级跑车,400,1000000"/>
+	</bean>
 </beans>

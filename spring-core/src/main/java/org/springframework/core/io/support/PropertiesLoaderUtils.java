@@ -175,6 +175,7 @@ public abstract class PropertiesLoaderUtils {
 		if (classLoaderToUse == null) {
 			classLoaderToUse = ClassUtils.getDefaultClassLoader();
 		}
+		//得到集合的枚举
 		Enumeration<URL> urls = (classLoaderToUse != null ? classLoaderToUse.getResources(resourceName) :
 				ClassLoader.getSystemResources(resourceName));
 		Properties props = new Properties();
@@ -183,10 +184,11 @@ public abstract class PropertiesLoaderUtils {
 			URLConnection con = url.openConnection();
 			ResourceUtils.useCachesIfNecessary(con);
 			InputStream is = con.getInputStream();
-			try {
+			try {//如果文件以.xml结尾，则加载xml文件
 				if (resourceName.endsWith(XML_FILE_EXTENSION)) {
 					props.loadFromXML(is);
 				}
+				//否则从网上下载文件
 				else {
 					props.load(is);
 				}
