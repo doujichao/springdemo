@@ -57,16 +57,29 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	}
 
 
+	/**
+	 * bean实例化策略
+	 * @param bd the bean definition
+	 * @param beanName the name of the bean when it is created in this context.
+	 * The name can be {@code null} if we are autowiring a bean which doesn't
+	 * belong to the factory.
+	 * @param owner the owning BeanFactory
+	 * @return
+	 */
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
+		//如果有需要覆盖或者动态替换的方法则当然需要使用cglib动态代理，因为可以在创建
+		//代理时将动态方法织入类中，但是如果没有需要倒台改变的方法，为了方便直接反射就可以了
 		if (!bd.hasMethodOverrides()) {
 			Constructor<?> constructorToUse;
 			synchronized (bd.constructorArgumentLock) {
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse == null) {
+					//获取beanDefinition中保存的class信息
 					final Class<?> clazz = bd.getBeanClass();
 					if (clazz.isInterface()) {
+						//这里的类是接口
 						throw new BeanInstantiationException(clazz, "Specified class is an interface");
 					}
 					try {
@@ -75,6 +88,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 									(PrivilegedExceptionAction<Constructor<?>>) clazz::getDeclaredConstructor);
 						}
 						else {
+							//获取声明方法
 							constructorToUse = clazz.getDeclaredConstructor();
 						}
 						bd.resolvedConstructorOrFactoryMethod = constructorToUse;
@@ -84,9 +98,11 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 					}
 				}
 			}
+			//使用本地类创建bean
 			return BeanUtils.instantiateClass(constructorToUse);
 		}
 		else {
+			//使用cglib调用构造函数
 			// Must generate CGLIB subclass.
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
