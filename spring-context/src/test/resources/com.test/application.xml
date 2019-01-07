@@ -8,4 +8,32 @@
 	<bean class="com.demo.CarBeanFactory"  id="car">
 		<property name="info" value="超级跑车,400,1000000"/>
 	</bean>
+
+	<!--自定义属性编辑器-->
+	<!--<bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+		<property name="customEditors">
+			<map>
+				<entry key="java.util.Date">
+					<bean class="com.dateproperty.DatePropertyEditor">
+						<property name="format" value="yyyy-MM-dd"/>
+					</bean>
+				</entry>
+			</map>
+		</property>
+	</bean>-->
+
+	<bean class="com.pojo.UserManager" id="userManager">
+		<property name="dataValue">
+			<value>2013-03-15</value>
+		</property>
+	</bean>
+
+	<bean class="org.springframework.beans.factory.config.CustomEditorConfigurer">
+		<property name="propertyEditorRegistrars">
+			<list>
+				<bean class="com.dateproperty.DatePropertyEditorRegister"/>
+			</list>
+		</property>
+	</bean>
+
 </beans>

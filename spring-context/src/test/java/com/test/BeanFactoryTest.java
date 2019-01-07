@@ -3,7 +3,10 @@ package com.test;
 import com.demo.Car;
 import com.demo.MyArray;
 import com.demo.MyTestBean;
+import com.pojo.UserManager;
 import org.junit.Test;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.xml.XmlBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -39,5 +42,23 @@ public class BeanFactoryTest {
 		Type type = a.getClass().getGenericSuperclass();
 		System.out.println(type);
 
+	}
+
+	@Test
+	public void testProperty(){
+		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("com.test/application.xml");
+		UserManager userManager = (UserManager) context.getBean("userManager");
+		System.out.println(userManager);
+	}
+
+	/**
+	 * 屏蔽特定字符的demo
+	 */
+	@Test
+	public void testPostProcess(){
+		ConfigurableListableBeanFactory bf=new XmlBeanFactory(new ClassPathResource("com.test/application1.xml"));
+		BeanFactoryPostProcessor bfpp= (BeanFactoryPostProcessor) bf.getBean("dfpp");
+		bfpp.postProcessBeanFactory(bf);
+		System.out.println(bf.getBean("simpleBean"));
 	}
 }
