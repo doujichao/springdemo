@@ -71,21 +71,46 @@ public abstract class AopNamespaceUtils {
 		registerComponentIfNecessary(beanDefinition, parserContext);
 	}
 
+	/**
+	 * 注册AnnotationAwareAspectJAutoProxyCreator
+	 * @param parserContext
+	 * @param sourceElement
+	 */
 	public static void registerAspectJAnnotationAutoProxyCreatorIfNecessary(
 			ParserContext parserContext, Element sourceElement) {
-
+		/*
+		 *注册或者升级AutoProxyCreator定义beanName为org.Springframework.aop.config
+		 * .internalAutoProxyCreator的BeanDefinition
+		 */
 		BeanDefinition beanDefinition = AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(
 				parserContext.getRegistry(), parserContext.extractSource(sourceElement));
+		//对于proxy-target-class以及expose-proxy属性的处理
 		useClassProxyingIfNecessary(parserContext.getRegistry(), sourceElement);
+		/*
+		 *注册组件，并通知百年与监听器祖宗进一步处理
+		 * 其中beanDefinition的className为AnnotationAwareAspectJAutoProxyCreator
+		 */
 		registerComponentIfNecessary(beanDefinition, parserContext);
 	}
 
+	/**
+	 * aop处理proxy-target-class以及expose-proxy属性
+	 * proxy-target-class：SpringAop部分使用JDK代理，部分使用CGLIB代理，如果被代理对象
+	 * 			实现了至少一个接口，则会使用JDK动态代理，如果被代理对象没有实现接口则会创建
+	 * 			一个Cglib代理
+	 * 			强制使用cglib动态代理，则需要再<aop:config>标签中配置proxy-target-class属性为true
+	 *expose-proxy:对象内部的自我调用将不会执行切面，这里配置expose-proxy=true可以解决这个问题
+	 * @param registry
+	 * @param sourceElement
+	 */
 	private static void useClassProxyingIfNecessary(BeanDefinitionRegistry registry, @Nullable Element sourceElement) {
 		if (sourceElement != null) {
+			//对于proxy-target-class的处理
 			boolean proxyTargetClass = Boolean.parseBoolean(sourceElement.getAttribute(PROXY_TARGET_CLASS_ATTRIBUTE));
 			if (proxyTargetClass) {
 				AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
 			}
+			//对于expose-proxy的处理
 			boolean exposeProxy = Boolean.parseBoolean(sourceElement.getAttribute(EXPOSE_PROXY_ATTRIBUTE));
 			if (exposeProxy) {
 				AopConfigUtils.forceAutoProxyCreatorToExposeProxy(registry);

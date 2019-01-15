@@ -788,6 +788,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		clearByTypeCache();
 	}
 
+	/**
+	 * 冰冻之后，注册的所有的bean的定义将不会被进一步修改
+	 */
 	@Override
 	public void freezeConfiguration() {
 		this.configurationFrozen = true;

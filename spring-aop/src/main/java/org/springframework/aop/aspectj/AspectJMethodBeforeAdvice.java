@@ -39,6 +39,13 @@ public class AspectJMethodBeforeAdvice extends AbstractAspectJAdvice implements 
 	}
 
 
+	/**
+	 * 调用前置通知
+	 * @param method method being invoked
+	 * @param args arguments to the method
+	 * @param target target of the method invocation. May be {@code null}.
+	 * @throws Throwable
+	 */
 	@Override
 	public void before(Method method, Object[] args, @Nullable Object target) throws Throwable {
 		invokeAdviceMethod(getJoinPointMatch(), null, null);

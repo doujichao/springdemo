@@ -46,8 +46,21 @@ import org.springframework.aop.SpringProxy;
 @SuppressWarnings("serial")
 public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 
+	/**
+	 * 创建代理
+	 * @param config the AOP configuration in the form of an
+	 * AdvisedSupport object
+	 * @return
+	 * @throws AopConfigException
+	 */
 	@Override
 	public AopProxy createAopProxy(AdvisedSupport config) throws AopConfigException {
+		/*
+		 *optimize:用来控制通过CGLIB创建的代理是否使用激进的优化策略
+		 *proxyTargetClass:这个属性为true是，目标类本身被代理而不是目标类的接口，如果这个
+		 * 			属性被设置为true，CGLIB代理将被创建，设置方式为<aop:aspectj-autoproxy proxy-target-class="true">
+		 *hasNoUserSuppliedProxyInterfaces:是否存在代理接口
+		 */
 		if (config.isOptimize() || config.isProxyTargetClass() || hasNoUserSuppliedProxyInterfaces(config)) {
 			Class<?> targetClass = config.getTargetClass();
 			if (targetClass == null) {
@@ -55,11 +68,14 @@ public class DefaultAopProxyFactory implements AopProxyFactory, Serializable {
 						"Either an interface or a target is required for proxy creation.");
 			}
 			if (targetClass.isInterface() || Proxy.isProxyClass(targetClass)) {
+				//使用jdk创建代理
 				return new JdkDynamicAopProxy(config);
 			}
+			//使用cglib创建代理
 			return new ObjenesisCglibAopProxy(config);
 		}
 		else {
+			//使用jdk创建代理
 			return new JdkDynamicAopProxy(config);
 		}
 	}
