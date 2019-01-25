@@ -311,12 +311,15 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 					(this.staticAttributes.isEmpty() ? "" : ", static attributes " + this.staticAttributes));
 		}
 
+		//合并输出模型
 		Map<String, Object> mergedModel = createMergedOutputModel(model, request, response);
 		prepareResponse(request, response);
+		//渲染合并后的输出模型，处理页面跳转
 		renderMergedOutputModel(mergedModel, getRequestToExpose(request), response);
 	}
 
 	/**
+	 * 返回视图处理，跳转视图
 	 * Creates a combined output Map (never {@code null}) that includes dynamic values and static attributes.
 	 * Dynamic values take precedence over static attributes.
 	 */

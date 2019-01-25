@@ -132,6 +132,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 
 	@Override
 	public void afterPropertiesSet() {
+		//对serviceUrl属性的验证
 		super.afterPropertiesSet();
 		prepare();
 	}
@@ -144,6 +145,7 @@ public class RmiClientInterceptor extends RemoteInvocationBasedAccessor
 	 */
 	public void prepare() throws RemoteLookupFailureException {
 		// Cache RMI stub on initialization?
+		//如果配置了lookupStubOnStartup
 		if (this.lookupStubOnStartup) {
 			Remote remoteObj = lookupStub();
 			if (logger.isDebugEnabled()) {

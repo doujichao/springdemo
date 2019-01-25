@@ -112,6 +112,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	}
 
 	/**
+	 * 获取默认的本地处理器
 	 * Look up a handler for the URL path of the given request.
 	 * @param request current HTTP request
 	 * @return the handler instance, or {@code null} if none found
@@ -119,24 +120,30 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	@Override
 	@Nullable
 	protected Object getHandlerInternal(HttpServletRequest request) throws Exception {
+		//截取用于匹配的url有效路径
 		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
+		//根据路径寻找handler
 		Object handler = lookupHandler(lookupPath, request);
 		if (handler == null) {
 			// We need to care for the default handler directly, since we need to
 			// expose the PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE for it as well.
 			Object rawHandler = null;
 			if ("/".equals(lookupPath)) {
+				//如果请求的路径仅仅是"/"，那么使用RootHandler进行处理
 				rawHandler = getRootHandler();
 			}
 			if (rawHandler == null) {
+				//如果无法找到handler则使用默认handler
 				rawHandler = getDefaultHandler();
 			}
 			if (rawHandler != null) {
+				//如果还是无法找到handler，根据bean找到对应的bean
 				// Bean name or resolved handler?
 				if (rawHandler instanceof String) {
 					String handlerName = (String) rawHandler;
 					rawHandler = obtainApplicationContext().getBean(handlerName);
 				}
+				//模板方法
 				validateHandler(rawHandler, request);
 				handler = buildPathExposingHandler(rawHandler, lookupPath, lookupPath, null);
 			}
@@ -145,6 +152,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	}
 
 	/**
+	 * 查找路径
 	 * Look up a handler instance for the given URL path.
 	 * <p>Supports direct matches, e.g. a registered "/test" matches "/test",
 	 * and various Ant-style pattern matches, e.g. a registered "/t*" matches
@@ -159,6 +167,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	 */
 	@Nullable
 	protected Object lookupHandler(String urlPath, HttpServletRequest request) throws Exception {
+		//直接匹配情况的处理
 		// Direct match?
 		Object handler = this.handlerMap.get(urlPath);
 		if (handler != null) {
@@ -171,12 +180,14 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 			return buildPathExposingHandler(handler, urlPath, urlPath, null);
 		}
 
+		//通配符匹配的处理
 		// Pattern match?
 		List<String> matchingPatterns = new ArrayList<>();
 		for (String registeredPattern : this.handlerMap.keySet()) {
 			if (getPathMatcher().match(registeredPattern, urlPath)) {
 				matchingPatterns.add(registeredPattern);
 			}
+			//如果使用尾斜杠匹配
 			else if (useTrailingSlashMatch()) {
 				if (!registeredPattern.endsWith("/") && getPathMatcher().match(registeredPattern + "/", urlPath)) {
 					matchingPatterns.add(registeredPattern +"/");

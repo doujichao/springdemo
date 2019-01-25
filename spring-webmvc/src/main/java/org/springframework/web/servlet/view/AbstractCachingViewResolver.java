@@ -142,13 +142,23 @@ public abstract class AbstractCachingViewResolver extends WebApplicationObjectSu
 	}
 
 
+	/**
+	 * 解析视图
+	 * @param viewName name of the view to resolve
+	 * @param locale the Locale in which to resolve the view.
+	 * ViewResolvers that support internationalization should respect this.
+	 * @return
+	 * @throws Exception
+	 */
 	@Override
 	@Nullable
 	public View resolveViewName(String viewName, Locale locale) throws Exception {
 		if (!isCache()) {
+			//不存在缓存的情况下，直接创建视图
 			return createView(viewName, locale);
 		}
 		else {
+			//缓存中有的话直接从缓存中提取
 			Object cacheKey = getCacheKey(viewName, locale);
 			View view = this.viewAccessCache.get(cacheKey);
 			if (view == null) {

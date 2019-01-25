@@ -436,6 +436,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			public T doInStatement(Statement stmt) throws SQLException {
 				ResultSet rs = null;
 				try {
+					//执行查询操作
 					rs = stmt.executeQuery(sql);
 					return rse.extractData(rs);
 				}
@@ -609,16 +610,20 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			logger.debug("Executing prepared SQL statement" + (sql != null ? " [" + sql + "]" : ""));
 		}
 
+		//获取数据库连接
 		Connection con = DataSourceUtils.getConnection(obtainDataSource());
 		PreparedStatement ps = null;
 		try {
 			ps = psc.createPreparedStatement(con);
+			//应用用户设定的输入参数
 			applyStatementSettings(ps);
+			//调用回调函数
 			T result = action.doInPreparedStatement(ps);
 			handleWarnings(ps);
 			return result;
 		}
 		catch (SQLException ex) {
+			//释放数据库连接避免当异常转换器没有被初始化的时候出现潜在的连接池死锁
 			// Release Connection early, to avoid potential connection pool deadlock
 			// in the case when the exception translator hasn't been initialized yet.
 			if (psc instanceof ParameterDisposer) {
@@ -636,6 +641,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 				((ParameterDisposer) psc).cleanupParameters();
 			}
 			JdbcUtils.closeStatement(ps);
+			//释放连接
 			DataSourceUtils.releaseConnection(con, getDataSource());
 		}
 	}
@@ -862,6 +868,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		return updateCount(execute(psc, ps -> {
 			try {
 				if (pss != null) {
+					//设置PrepareStatement所需的全部参数
 					pss.setValues(ps);
 				}
 				int rows = ps.executeUpdate();
@@ -1352,6 +1359,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	/**
+	 * 应用数据库操作参数
 	 * Prepare the given JDBC Statement (or PreparedStatement or CallableStatement),
 	 * applying statement settings such as fetch size, max rows, and query timeout.
 	 * @param stmt the JDBC Statement to prepare
@@ -1362,6 +1370,11 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * @see org.springframework.jdbc.datasource.DataSourceUtils#applyTransactionTimeout
 	 */
 	protected void applyStatementSettings(Statement stmt) throws SQLException {
+		/*
+		 *setFetchSize最主要的是为了减少网络交互次数设计的，每次只从服务器上去读一行数据，
+		 * 会产生大量的开销，这个设置主要是为了减少系统开销的
+		 *
+		 */
 		int fetchSize = getFetchSize();
 		if (fetchSize != -1) {
 			stmt.setFetchSize(fetchSize);
@@ -1397,6 +1410,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	}
 
 	/**
+	 * 处理警告
 	 * Throw an SQLWarningException if we're not ignoring warnings,
 	 * else log the warnings (at debug level).
 	 * @param stmt the current JDBC statement

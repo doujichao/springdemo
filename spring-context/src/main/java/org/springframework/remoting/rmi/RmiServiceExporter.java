@@ -32,6 +32,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.lang.Nullable;
 
 /**
+ * 远程接口调用
+ *
  * RMI exporter that exposes the specified service as RMI object with the specified name.
  * Such services can be accessed via plain RMI or via {@link RmiProxyFactoryBean}.
  * Also supports exposing any non-RMI service via RMI invokers, to be accessed via
@@ -225,37 +227,55 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 	}
 
 
+	/**
+	 * 远程接口调用入口
+	 * @throws RemoteException
+	 */
 	@Override
 	public void afterPropertiesSet() throws RemoteException {
 		prepare();
 	}
 
 	/**
+	 * 远程接口调用准备
 	 * Initialize this service exporter, registering the service as RMI object.
 	 * <p>Creates an RMI registry on the specified port if none exists.
 	 * @throws RemoteException if service registration failed
 	 */
 	public void prepare() throws RemoteException {
+		//检查service
 		checkService();
 
 		if (this.serviceName == null) {
 			throw new IllegalArgumentException("Property 'serviceName' is required");
 		}
 
+		/*
+		 *如果用户在配置文件中配置了clientSocketFactory或者serveSocketFactory的处理
+		 * 如果配置中的clientSocketFactory同时又实现了RMIServerSocketFactory接口那么
+		 * 会忽略配置中的serverSocketFactory而使用clientSocketFactory代替
+		 */
 		// Check socket factories for exported object.
 		if (this.clientSocketFactory instanceof RMIServerSocketFactory) {
 			this.serverSocketFactory = (RMIServerSocketFactory) this.clientSocketFactory;
 		}
+		//clientSocketFactory和serverSocketFactory要么同时出现要么都不出现
 		if ((this.clientSocketFactory != null && this.serverSocketFactory == null) ||
 				(this.clientSocketFactory == null && this.serverSocketFactory != null)) {
 			throw new IllegalArgumentException(
 					"Both RMIClientSocketFactory and RMIServerSocketFactory or none required");
 		}
 
+		/*
+		 * 如果配置中的registryClientSocketFactory同时实现了RMIServerSocketFactory
+		 * 接口那么会忽略配置中的registryServerSocketFactory而使用registryClientSocketFactory
+		 * 代替
+		 */
 		// Check socket factories for RMI registry.
 		if (this.registryClientSocketFactory instanceof RMIServerSocketFactory) {
 			this.registryServerSocketFactory = (RMIServerSocketFactory) this.registryClientSocketFactory;
 		}
+		//不允许出现之配置了registryClientSocketFactory却没有配置registryServerSocketFactory的情况
 		if (this.registryClientSocketFactory == null && this.registryServerSocketFactory != null) {
 			throw new IllegalArgumentException(
 					"RMIServerSocketFactory without RMIClientSocketFactory for registry not supported");
@@ -263,6 +283,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 
 		this.createdRegistry = false;
 
+		//确定RMI registry
 		// Determine RMI registry to use.
 		if (this.registry == null) {
 			this.registry = getRegistry(this.registryHost, this.registryPort,
@@ -270,6 +291,10 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 			this.createdRegistry = true;
 		}
 
+		/*
+		 *初始化以及缓存到处的Object
+		 * 此时通常情况下是使用RMIInvocationWrapper封装的JDK代理类，切面为RemoteInvocationTraceInterceptor
+		 */
 		// Initialize and cache exported object.
 		this.exportedObject = getObjectToExport();
 
@@ -279,10 +304,16 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 
 		// Export RMI object.
 		if (this.clientSocketFactory != null) {
+			/*
+			 *使用由给定的套接字工厂指定的传送方式到处远程对象，以便能够接受传入的调用
+			 * clientSocketFactory:进行远程对象调用的客户端套接字工厂
+			 * serverSocketFactory:接受远程调用的服务端套接字工厂
+			 */
 			UnicastRemoteObject.exportObject(
 					this.exportedObject, this.servicePort, this.clientSocketFactory, this.serverSocketFactory);
 		}
 		else {
+			//导出remote object，以使它能接收特定端口的调用
 			UnicastRemoteObject.exportObject(this.exportedObject, this.servicePort);
 		}
 
@@ -292,6 +323,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 				this.registry.rebind(this.serviceName, this.exportedObject);
 			}
 			else {
+				//绑定服务名称到remote object，外界调用serviceName的时候会被exportedObject
 				this.registry.bind(this.serviceName, this.exportedObject);
 			}
 		}
@@ -310,6 +342,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 
 
 	/**
+	 * 获取register
 	 * Locate or create the RMI registry for this exporter.
 	 * @param registryHost the registry host to use (if this is specified,
 	 * no implicit creation of a RMI registry will happen)
@@ -324,16 +357,19 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 			throws RemoteException {
 
 		if (registryHost != null) {
+			//远程连接测试
 			// Host explicitly specified: only lookup possible.
 			if (logger.isDebugEnabled()) {
 				logger.debug("Looking for RMI registry at port '" + registryPort + "' of host [" + registryHost + "]");
 			}
+			//如果registerHost不为空，则尝试获取对应主机的Registry
 			Registry reg = LocateRegistry.getRegistry(registryHost, registryPort, clientSocketFactory);
 			testRegistry(reg);
 			return reg;
 		}
 
 		else {
+			//获取本机的Registry
 			return getRegistry(registryPort, clientSocketFactory, serverSocketFactory);
 		}
 	}
@@ -353,6 +389,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 		if (clientSocketFactory != null) {
 			if (this.alwaysCreateRegistry) {
 				logger.debug("Creating new RMI registry");
+				//使用clientSocketFactory创建Registry
 				return LocateRegistry.createRegistry(registryPort, clientSocketFactory, serverSocketFactory);
 			}
 			if (logger.isDebugEnabled()) {
@@ -360,6 +397,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 			}
 			synchronized (LocateRegistry.class) {
 				try {
+					//复用测试
 					// Retrieve existing registry.
 					Registry reg = LocateRegistry.getRegistry(null, registryPort, clientSocketFactory);
 					testRegistry(reg);
@@ -375,6 +413,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 		}
 
 		else {
+			//如果不需要使用自定义的套接字工厂，那么可以直接使用LocateRegistry.createRegistry创建
 			return getRegistry(registryPort);
 		}
 	}
@@ -386,6 +425,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 	 * @throws RemoteException if the registry couldn't be located or created
 	 */
 	protected Registry getRegistry(int registryPort) throws RemoteException {
+		//这里alwaysCreateRegistry如果为true，那么获取Registry实例首先会测试是否已经建立了对指定端口的连接
 		if (this.alwaysCreateRegistry) {
 			logger.debug("Creating new RMI registry");
 			return LocateRegistry.createRegistry(registryPort);
@@ -395,8 +435,10 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 		}
 		synchronized (LocateRegistry.class) {
 			try {
+				//查看对应当前registryPort的Registry是否已经创建，如果创建直接使用
 				// Retrieve existing registry.
 				Registry reg = LocateRegistry.getRegistry(registryPort);
+				//测试是否可用，如果不可用则抛出异常
 				testRegistry(reg);
 				return reg;
 			}
@@ -404,6 +446,7 @@ public class RmiServiceExporter extends RmiBasedExporter implements Initializing
 				logger.trace("RMI registry access threw exception", ex);
 				logger.debug("Could not detect RMI registry - creating new one");
 				// Assume no registry found -> create new one.
+				//根据端口创建Registry
 				return LocateRegistry.createRegistry(registryPort);
 			}
 		}

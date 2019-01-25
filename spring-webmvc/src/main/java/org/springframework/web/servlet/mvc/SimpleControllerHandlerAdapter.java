@@ -44,6 +44,16 @@ public class SimpleControllerHandlerAdapter implements HandlerAdapter {
 		return (handler instanceof Controller);
 	}
 
+	/**
+	 * 实际调用处理器方法
+	 * @param request current HTTP request
+	 * @param response current HTTP response
+	 * @param handler handler to use. This object must have previously been passed
+	 * to the {@code supports} method of this interface, which must have
+	 * returned {@code true}.
+	 * @return
+	 * @throws Exception
+	 */
 	@Override
 	@Nullable
 	public ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler)

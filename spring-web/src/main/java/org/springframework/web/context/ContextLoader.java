@@ -247,6 +247,8 @@ public class ContextLoader {
 
 
 	/**
+	 * web应用程序启动的时候，因实现了ServletContextListener默认会调用其中的
+	 * contextInitialized方法，而contextInitialized调用了本方法
 	 * Initialize Spring's web application context for the given servlet context,
 	 * using the application context provided at construction time, or creating a new one
 	 * according to the "{@link #CONTEXT_CLASS_PARAM contextClass}" and
@@ -258,6 +260,7 @@ public class ContextLoader {
 	 * @see #CONFIG_LOCATION_PARAM
 	 */
 	public WebApplicationContext initWebApplicationContext(ServletContext servletContext) {
+		//web.xml中存在多次ContextLoader定义，在这里抛出异常
 		if (servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE) != null) {
 			throw new IllegalStateException(
 					"Cannot initialize context because there is already a root application context present - " +
@@ -265,6 +268,7 @@ public class ContextLoader {
 		}
 
 		servletContext.log("Initializing Spring root WebApplicationContext");
+		//创建日志记录类
 		Log logger = LogFactory.getLog(ContextLoader.class);
 		if (logger.isInfoEnabled()) {
 			logger.info("Root WebApplicationContext: initialization started");
@@ -275,6 +279,7 @@ public class ContextLoader {
 			// Store context in local instance variable, to guarantee that
 			// it is available on ServletContext shutdown.
 			if (this.context == null) {
+				//初始化context
 				this.context = createWebApplicationContext(servletContext);
 			}
 			if (this.context instanceof ConfigurableWebApplicationContext) {
@@ -291,13 +296,16 @@ public class ContextLoader {
 					configureAndRefreshWebApplicationContext(cwac, servletContext);
 				}
 			}
+			//将webApplicationContext记录在servletContext后面可以直接从servletContext中获取Context对象
 			servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this.context);
 
+			//
 			ClassLoader ccl = Thread.currentThread().getContextClassLoader();
 			if (ccl == ContextLoader.class.getClassLoader()) {
 				currentContext = this.context;
 			}
 			else if (ccl != null) {
+				//映射当前的类加载器与创建的实例到全局变量currentContextPerThread中
 				currentContextPerThread.put(ccl, this.context);
 			}
 
@@ -316,6 +324,7 @@ public class ContextLoader {
 	}
 
 	/**
+	 * 创建WebApplicationContext对象
 	 * Instantiate the root WebApplicationContext for this loader, either the
 	 * default context class or a custom context class if specified.
 	 * <p>This implementation expects custom contexts to implement the
@@ -337,6 +346,7 @@ public class ContextLoader {
 	}
 
 	/**
+	 * 决定时什么类型的类
 	 * Return the WebApplicationContext implementation class to use, either the
 	 * default XmlWebApplicationContext or a custom context class if specified.
 	 * @param servletContext current servlet context

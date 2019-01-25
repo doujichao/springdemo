@@ -60,6 +60,7 @@ public abstract class DataSourceUtils {
 
 
 	/**
+	 * 获取数据库连接
 	 * Obtain a Connection from the given DataSource. Translates SQLExceptions into
 	 * the Spring hierarchy of unchecked generic data access exceptions, simplifying
 	 * calling code and making any exception that is thrown more meaningful.
@@ -86,6 +87,7 @@ public abstract class DataSourceUtils {
 	}
 
 	/**
+	 * 获取数据库连接操作
 	 * Actually obtain a JDBC Connection from the given DataSource.
 	 * Same as {@link #getConnection}, but throwing the original SQLException.
 	 * <p>Is aware of a corresponding Connection bound to the current thread, for example
@@ -99,7 +101,6 @@ public abstract class DataSourceUtils {
 	 */
 	public static Connection doGetConnection(DataSource dataSource) throws SQLException {
 		Assert.notNull(dataSource, "No DataSource specified");
-
 		ConnectionHolder conHolder = (ConnectionHolder) TransactionSynchronizationManager.getResource(dataSource);
 		if (conHolder != null && (conHolder.hasConnection() || conHolder.isSynchronizedWithTransaction())) {
 			conHolder.requested();
@@ -113,11 +114,12 @@ public abstract class DataSourceUtils {
 
 		logger.debug("Fetching JDBC Connection from DataSource");
 		Connection con = fetchConnection(dataSource);
-
+		//当前线程支持同步
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
 			try {
 				// Use same Connection for further JDBC actions within the transaction.
 				// Thread-bound object will get removed by synchronization at transaction completion.
+				//再事务中使用同一数据库连接
 				ConnectionHolder holderToUse = conHolder;
 				if (holderToUse == null) {
 					holderToUse = new ConnectionHolder(con);
@@ -125,6 +127,7 @@ public abstract class DataSourceUtils {
 				else {
 					holderToUse.setConnection(con);
 				}
+				//记录数据库连接
 				holderToUse.requested();
 				TransactionSynchronizationManager.registerSynchronization(
 						new ConnectionSynchronization(holderToUse, dataSource));
@@ -162,6 +165,7 @@ public abstract class DataSourceUtils {
 	}
 
 	/**
+	 * 设置只读标识和隔离级别
 	 * Prepare the given Connection with the given transaction semantics.
 	 * @param con the Connection to prepare
 	 * @param definition the transaction definition to apply
@@ -175,6 +179,7 @@ public abstract class DataSourceUtils {
 
 		Assert.notNull(con, "No Connection specified");
 
+		//设置数据连接的只读标识
 		// Set read-only flag.
 		if (definition != null && definition.isReadOnly()) {
 			try {
@@ -197,6 +202,7 @@ public abstract class DataSourceUtils {
 			}
 		}
 
+		//设置数据库连接的隔离级别
 		// Apply specific isolation level, if any.
 		Integer previousIsolationLevel = null;
 		if (definition != null && definition.getIsolationLevel() != TransactionDefinition.ISOLATION_DEFAULT) {
@@ -300,6 +306,7 @@ public abstract class DataSourceUtils {
 	}
 
 	/**
+	 * 释放资源
 	 * Close the given Connection, obtained from the given DataSource,
 	 * if it is not managed externally (that is, not bound to the thread).
 	 * @param con the Connection to close if necessary
@@ -321,6 +328,7 @@ public abstract class DataSourceUtils {
 	}
 
 	/**
+	 * 执行释放资源操作
 	 * Actually close the given Connection, obtained from the given DataSource.
 	 * Same as {@link #releaseConnection}, but throwing the original SQLException.
 	 * <p>Directly accessed by {@link TransactionAwareDataSourceProxy}.
@@ -336,6 +344,8 @@ public abstract class DataSourceUtils {
 			return;
 		}
 		if (dataSource != null) {
+			//当前线程存在事务的情况下说明存在公用数据库连接直接使用ConnectionHolder中的
+			//released方法进行连接数减一而不是真正的释放连接
 			ConnectionHolder conHolder = (ConnectionHolder) TransactionSynchronizationManager.getResource(dataSource);
 			if (conHolder != null && connectionEquals(conHolder, con)) {
 				// It's the transactional Connection: Don't close it.

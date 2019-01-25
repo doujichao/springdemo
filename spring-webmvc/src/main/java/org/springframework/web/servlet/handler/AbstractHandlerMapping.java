@@ -389,6 +389,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 
 
 	/**
+	 * 获取处理器
 	 * Look up a handler for the given request, falling back to the default
 	 * handler if no specific one is found.
 	 * @param request current HTTP request
@@ -398,10 +399,13 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	@Override
 	@Nullable
 	public final HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+		//根据request获取对应的handler
 		Object handler = getHandlerInternal(request);
 		if (handler == null) {
+			//如果没有对应的request的handle则使用默认的handler
 			handler = getDefaultHandler();
 		}
+		//如果也没有提供默认的handler则无法继续处理返回null
 		if (handler == null) {
 			return null;
 		}
@@ -411,6 +415,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 			handler = obtainApplicationContext().getBean(handlerName);
 		}
 
+		//获取执行链
 		HandlerExecutionChain executionChain = getHandlerExecutionChain(handler, request);
 
 		if (logger.isTraceEnabled()) {
@@ -450,6 +455,7 @@ public abstract class AbstractHandlerMapping extends WebApplicationObjectSupport
 	protected abstract Object getHandlerInternal(HttpServletRequest request) throws Exception;
 
 	/**
+	 * 封装执行链执行链
 	 * Build a {@link HandlerExecutionChain} for the given handler, including
 	 * applicable interceptors.
 	 * <p>The default implementation builds a standard {@link HandlerExecutionChain}
